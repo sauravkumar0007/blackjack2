@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack Game</title>
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: url('https://images.unsplash.com/photo-1610391081934-8d7c2f6f6b7c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+            background-size: cover;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 0;
+        }
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+        .title {
+            font-family: 'Bangers', cursive;
+            background: linear-gradient(to right, #d4af37, #9b1d20);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+            transition: transform 0.3s ease;
+        }
+        .title:hover {
+            transform: scale(1.05);
+        }
+        .card {
+            display: inline-block;
+            width: 80px;
+            height: 120px;
+            border: 2px solid #d4af37;
+            border-radius: 8px;
+            margin: 5px;
+            background-size: cover;
+            background-position: center;
+            box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s ease;
+        }
+        .card:hover {
+            transform: rotate(2deg) scale(1.05);
+        }
+        .game-area {
+            background: #1a3c34;
+            border: 2px solid #d4af37;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+        }
+        .hand-title {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            color: #d4af37;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        .score-text {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.1rem;
+            color: #ffffff;
+        }
+        .result-text {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: #d4af37;
+            animation: fadeIn 0.5s ease-in;
+        }
+        .btn {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to bottom, #c72c2f, #9b1d20);
+            border: 1px solid #d4af37;
+            color: #ffffff;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+        .btn:hover {
+            background: #c72c2f;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            animation: none;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto p-4 max-w-md text-center">
+        <h1 class="title text-5xl font-bold mb-6">Blackjack</h1>
+        <div id="gameArea" class="game-area">
+            <div id="playerArea" class="mb-6">
+                <h2 class="hand-title text-2xl mb-2">Your Hand</h2>
+                <div id="playerCards" class="flex justify-center"></div>
+                <p id="playerScore" class="score-text mt-2">Score: 0</p>
+            </div>
+            <div id="computerArea" class="mb-6">
+                <h2 class="hand-title text-2xl mb-2">Dealer's Hand</h2>
+                <div id="computerCards" class="flex justify-center"></div>
+                <p id="computerScore" class="score-text mt-2">Score: ?</p>
+            </div>
+            <p id="result" class="result-text mb-4"></p>
+            <div id="controls">
+                <button id="hit" class="btn font-bold py-2 px-4 rounded mr-2">Hit</button>
+                <button id="stand" class="btn font-bold py-2 px-4 rounded mr-2">Stand</button>
+                <button id="newGame" class="btn font-bold py-2 px-4 rounded">New Game</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const suits = ['S', 'H', 'C', 'D'];
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        const cardValues = [11, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10];
+
+        function dealCard() {
+            const index = Math.floor(Math.random() * 13);
+            const value = cardValues[index];
+            const suit = suits[Math.floor(Math.random() * 4)];
+            const displayValue = values[index];
+            return {
+                value: value,
+                image: `https://deckofcardsapi.com/static/img/${displayValue}${suit}.png`
+            };
+        }
+
+        function calculateScore(cards) {
+            let score = cards.reduce((sum, card) => sum + card.value, 0);
+            if (score === 21 && cards.length === 2) {
+                return 0;
+            }
+            if (cards.some(card => card.value === 11) && score > 21) {
+                const aceIndex = cards.findIndex(card => card.value === 11);
+                cards[aceIndex].value = 1;
+                score = cards.reduce((sum, card) => sum + card.value, 0);
+            }
+            return score;
+        }
+
+        function compare(userScore, computerScore) {
+            if (userScore === computerScore) return "Draw";
+            if (computerScore === 0) return "Lose, dealer has Blackjack";
+            if (userScore === 0) return "Win with a Blackjack";
+            if (userScore > 21) return "You went over. You lose";
+            if (computerScore > 21) return "Dealer went over. You win";
+            return userScore > computerScore ? "You win" : "You lose";
+        }
+
+        function updateDisplay() {
+            const playerCardsDiv = document.getElementById('playerCards');
+            const computerCardsDiv = document.getElementById('computerCards');
+            const playerScoreP = document.getElementById('playerScore');
+            const computerScoreP = document.getElementById('computerScore');
+            const resultP = document.getElementById('result');
+
+            playerCardsDiv.innerHTML = playerCards.map(card => 
+                `<div class="card" style="background-image: url(${card.image})"></div>`
+            ).join('');
+            computerCardsDiv.innerHTML = gameOver 
+                ? computerCards.map(card => 
+                    `<div class="card" style="background-image: url(${card.image})"></div>`
+                  ).join('')
+                : `<div class="card" style="background-image: url(${computerCards[0].image})"></div><div class="card" style="background-image: url(https://deckofcardsapi.com/static/img/back.png)"></div>`;
+            playerScoreP.textContent = `Score: ${calculateScore(playerCards)}`;
+            computerScoreP.textContent = gameOver ? `Score: ${calculateScore(computerCards)}` : 'Score: ?';
+            resultP.textContent = result;
+        }
+
+        let playerCards = [];
+        let computerCards = [];
+        let gameOver = false;
+        let result = '';
+
+        function startGame() {
+            playerCards = [dealCard(), dealCard()];
+            computerCards = [dealCard(), dealCard()];
+            gameOver = false;
+            result = '';
+            document.getElementById('hit').disabled = false;
+            document.getElementById('stand').disabled = false;
+            updateDisplay();
+        }
+
+        document.getElementById('hit').addEventListener('click', () => {
+            if (!gameOver) {
+                playerCards.push(dealCard());
+                const playerScore = calculateScore(playerCards);
+                if (playerScore === 0 || playerScore > 21) {
+                    gameOver = true;
+                    endGame();
+                }
+                updateDisplay();
+            }
+        });
+
+        document.getElementById('stand').addEventListener('click', () => {
+            if (!gameOver) {
+                gameOver = true;
+                endGame();
+            }
+        });
+
+        document.getElementById('newGame').addEventListener('click', startGame);
+
+        function endGame() {
+            let computerScore = calculateScore(computerCards);
+            while (computerScore !== 0 && computerScore < 17) {
+                computerCards.push(dealCard());
+                computerScore = calculateScore(computerCards);
+            }
+            result = compare(calculateScore(playerCards), calculateScore(computerCards));
+            document.getElementById('hit').disabled = true;
+            document.getElementById('stand').disabled = true;
+            updateDisplay();
+        }
+
+        startGame();
+    </script>
+</body>
+</html>
